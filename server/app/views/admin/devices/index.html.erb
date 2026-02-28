@@ -1,0 +1,31 @@
+<div class="flex justify-between items-center mb-6">
+  <h1 class="text-2xl font-bold">Devices (Admin)</h1>
+  <%= link_to "New Device", new_admin_device_path, class: "bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600" %>
+</div>
+<div class="bg-white rounded shadow overflow-x-auto">
+  <table class="w-full">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="text-left p-4">Name</th>
+        <th class="text-left p-4">Token Prefix</th>
+        <th class="text-left p-4">Active</th>
+        <th class="text-left p-4">Owner</th>
+        <th class="text-left p-4">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @devices.each do |device| %>
+        <tr class="border-t">
+          <td class="p-4"><%= link_to device.name, device_path(device), class: "text-blue-600 hover:underline" %></td>
+          <td class="p-4 font-mono"><%= device.api_token_prefix || "-" %></td>
+          <td class="p-4"><%= device.active? ? "Yes" : "No" %></td>
+          <td class="p-4"><%= device.user&.email || "-" %></td>
+          <td class="p-4 flex gap-2">
+            <%= button_to "Generate Token", generate_token_device_path(device), method: :post, class: "text-yellow-600 hover:underline bg-transparent border-0 cursor-pointer" %>
+            <%= button_to "Delete", admin_device_path(device), method: :delete, class: "text-red-600 hover:underline bg-transparent border-0 cursor-pointer" %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

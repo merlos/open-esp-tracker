@@ -1,0 +1,41 @@
+<div class="flex justify-between items-center mb-6">
+  <h1 class="text-2xl font-bold">Locations for <%= @device.name %></h1>
+  <%= link_to "← Back to Device", device_path(@device), class: "bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded" %>
+</div>
+<div class="bg-white rounded shadow overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="text-left p-3">Time</th>
+        <th class="text-left p-3">Latitude</th>
+        <th class="text-left p-3">Longitude</th>
+        <th class="text-left p-3">Altitude</th>
+        <th class="text-left p-3">Speed</th>
+        <th class="text-left p-3">Accuracy</th>
+        <th class="text-left p-3">Battery</th>
+        <th class="text-left p-3">Satellites</th>
+        <th class="text-left p-3">HDOP</th>
+        <th class="text-left p-3">Firmware</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @locations.each do |loc| %>
+        <tr class="border-t hover:bg-gray-50">
+          <td class="p-3"><%= loc.recorded_at&.strftime("%Y-%m-%d %H:%M:%S") %></td>
+          <td class="p-3 font-mono"><%= loc.latitude %></td>
+          <td class="p-3 font-mono"><%= loc.longitude %></td>
+          <td class="p-3"><%= loc.altitude ? "#{loc.altitude}m" : "-" %></td>
+          <td class="p-3"><%= loc.speed ? "#{loc.speed} m/s" : "-" %></td>
+          <td class="p-3"><%= loc.accuracy ? "#{loc.accuracy}m" : "-" %></td>
+          <td class="p-3"><%= loc.battery_level ? "#{loc.battery_level}%" : "-" %></td>
+          <td class="p-3"><%= loc.satellites || "-" %></td>
+          <td class="p-3"><%= loc.hdop || "-" %></td>
+          <td class="p-3"><%= loc.firmware_version || "-" %></td>
+        </tr>
+      <% end %>
+      <% if @locations.empty? %>
+        <tr><td colspan="10" class="p-4 text-center text-gray-400">No locations recorded yet.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,78 @@
+<%= content_for :head do %>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<% end %>
+
+<div class="flex gap-4 h-[80vh]">
+  <!-- Sidebar -->
+  <div class="w-72 bg-white rounded shadow overflow-y-auto flex-shrink-0">
+    <div class="p-4 border-b flex justify-between items-center">
+      <h2 class="font-bold text-lg">Devices</h2>
+      <% if admin? %>
+        <%= link_to "New Device", new_admin_device_path, class: "bg-blue-700 text-white px-3 py-1 rounded text-sm hover:bg-blue-600" %>
+      <% end %>
+    </div>
+    <% @devices_with_location.each do |entry| %>
+      <% device = entry[:device]; last_loc = entry[:last_location] %>
+      <%= link_to device_path(device), class: "block p-4 border-b hover:bg-gray-50" do %>
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full <%= device.active? ? 'bg-green-500' : 'bg-gray-400' %>"></span>
+          <span class="font-medium"><%= device.name %></span>
+        </div>
+        <% if last_loc %>
+          <div class="text-sm text-gray-500 mt-1">
+            Last: <%= last_loc.recorded_at&.strftime("%Y-%m-%d %H:%M") || "unknown" %>
+          </div>
+          <% if last_loc.battery_level %>
+            <div class="text-sm text-gray-500">Battery: <%= last_loc.battery_level %>%</div>
+          <% end %>
+        <% else %>
+          <div class="text-sm text-gray-400 mt-1">No data</div>
+        <% end %>
+      <% end %>
+    <% end %>
+    <% if @devices_with_location.empty? %>
+      <p class="p-4 text-gray-500">No devices found.</p>
+    <% end %>
+  </div>
+
+  <!-- Map -->
+  <div class="flex-1 rounded shadow overflow-hidden">
+    <div id="map" style="height: 100%; width: 100%;"></div>
+  </div>
+</div>
+
+<script>
+  var map = L.map('map').setView([20, 0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+
+  var devices = <%= raw @devices_with_location.filter_map { |entry|
+    next unless entry[:last_location]
+    loc = entry[:last_location]
+    {
+      name: entry[:device].name,
+      lat: loc.latitude,
+      lng: loc.longitude,
+      battery: loc.battery_level,
+      last_seen: loc.recorded_at&.strftime("%Y-%m-%d %H:%M")
+    }
+  }.to_json %>;
+
+  var bounds = [];
+  devices.forEach(function(d) {
+    var marker = L.marker([d.lat, d.lng]).addTo(map);
+    marker.bindPopup(
+      '<b>' + d.name + '</b><br>' +
+      'Lat: ' + d.lat + '<br>' +
+      'Lng: ' + d.lng + '<br>' +
+      (d.battery !== null ? 'Battery: ' + d.battery + '%<br>' : '') +
+      'Last seen: ' + d.last_seen
+    );
+    bounds.push([d.lat, d.lng]);
+  });
+  if (bounds.length > 0) {
+    map.fitBounds(bounds, { padding: [30, 30] });
+  }
+</script>

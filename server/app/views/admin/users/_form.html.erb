@@ -1,0 +1,30 @@
+<%= form_with model: [:admin, user], local: true, class: "bg-white rounded shadow p-6" do |f| %>
+  <% if user.errors.any? %>
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+      <% user.errors.full_messages.each do |msg| %>
+        <p><%= msg %></p>
+      <% end %>
+    </div>
+  <% end %>
+  <div class="mb-4">
+    <%= f.label :email, class: "block font-medium mb-1" %>
+    <%= f.email_field :email, class: "w-full border rounded px-3 py-2" %>
+  </div>
+  <div class="mb-4">
+    <%= f.label :name, class: "block font-medium mb-1" %>
+    <%= f.text_field :name, class: "w-full border rounded px-3 py-2" %>
+  </div>
+  <div class="mb-4">
+    <%= f.label :role, class: "block font-medium mb-1" %>
+    <%= f.select :role, User.roles.keys.map { |r| [r.capitalize, r] }, {}, class: "w-full border rounded px-3 py-2" %>
+  </div>
+  <div class="mb-4">
+    <%= f.label :password, "Password #{user.persisted? ? '(leave blank to keep)' : ''}", class: "block font-medium mb-1" %>
+    <%= f.password_field :password, class: "w-full border rounded px-3 py-2" %>
+  </div>
+  <div class="mb-6">
+    <%= f.label :password_confirmation, class: "block font-medium mb-1" %>
+    <%= f.password_field :password_confirmation, class: "w-full border rounded px-3 py-2" %>
+  </div>
+  <%= f.submit user.persisted? ? "Update User" : "Create User", class: "bg-blue-700 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded" %>
+<% end %>

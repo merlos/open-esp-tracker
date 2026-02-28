@@ -1,0 +1,92 @@
+<%= content_for :head do %>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<% end %>
+
+<div class="mb-4 flex justify-between items-center">
+  <h1 class="text-2xl font-bold"><%= @device.name %></h1>
+  <div class="flex gap-2">
+    <% if admin? %>
+      <%= button_to "Generate Token", generate_token_device_path(@device), method: :post, class: "bg-yellow-500 hover:bg-yellow-400 text-white px-4 py-2 rounded" %>
+      <%= button_to "Delete", device_path(@device), method: :delete, form: { data: { turbo_confirm: "Are you sure?" } }, class: "bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded" %>
+    <% end %>
+    <%= link_to "← Back", devices_path, class: "bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded" %>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <div class="bg-white rounded shadow p-4">
+    <h2 class="font-bold text-lg mb-3">Device Details</h2>
+    <dl class="space-y-2">
+      <div class="flex"><dt class="w-40 text-gray-500">Status:</dt><dd><span class="px-2 py-0.5 rounded text-sm <%= @device.active? ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' %>"><%= @device.active? ? "Active" : "Inactive" %></span></dd></div>
+      <div class="flex"><dt class="w-40 text-gray-500">Token Prefix:</dt><dd class="font-mono"><%= @device.api_token_prefix || "none" %></dd></div>
+      <% if @last_location %>
+        <div class="flex"><dt class="w-40 text-gray-500">Last Seen:</dt><dd><%= @last_location.recorded_at&.strftime("%Y-%m-%d %H:%M:%S") %></dd></div>
+        <div class="flex"><dt class="w-40 text-gray-500">Coordinates:</dt><dd><%= @last_location.latitude %>, <%= @last_location.longitude %></dd></div>
+        <% if @last_location.battery_level %>
+          <div class="flex"><dt class="w-40 text-gray-500">Battery:</dt><dd><%= @last_location.battery_level %>%<% if @last_location.battery_voltage %> (<%= @last_location.battery_voltage %>V)<% end %></dd></div>
+        <% end %>
+        <% if @last_location.firmware_version %>
+          <div class="flex"><dt class="w-40 text-gray-500">Firmware:</dt><dd><%= @last_location.firmware_version %></dd></div>
+        <% end %>
+      <% end %>
+    </dl>
+  </div>
+
+  <div class="rounded shadow overflow-hidden" style="height: 300px;">
+    <div id="map" style="height: 100%; width: 100%;"></div>
+  </div>
+</div>
+
+<div class="bg-white rounded shadow p-4">
+  <h2 class="font-bold text-lg mb-3">Recent Locations</h2>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="text-left p-2">Time</th>
+          <th class="text-left p-2">Latitude</th>
+          <th class="text-left p-2">Longitude</th>
+          <th class="text-left p-2">Altitude</th>
+          <th class="text-left p-2">Speed</th>
+          <th class="text-left p-2">Battery</th>
+          <th class="text-left p-2">Satellites</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @recent_locations.each do |loc| %>
+          <tr class="border-t hover:bg-gray-50">
+            <td class="p-2"><%= loc.recorded_at&.strftime("%Y-%m-%d %H:%M:%S") %></td>
+            <td class="p-2 font-mono"><%= loc.latitude %></td>
+            <td class="p-2 font-mono"><%= loc.longitude %></td>
+            <td class="p-2"><%= loc.altitude ? "#{loc.altitude}m" : "-" %></td>
+            <td class="p-2"><%= loc.speed ? "#{loc.speed} m/s" : "-" %></td>
+            <td class="p-2"><%= loc.battery_level ? "#{loc.battery_level}%" : "-" %></td>
+            <td class="p-2"><%= loc.satellites || "-" %></td>
+          </tr>
+        <% end %>
+        <% if @recent_locations.empty? %>
+          <tr><td colspan="7" class="p-4 text-center text-gray-400">No locations recorded yet.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  var map = L.map('map');
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+
+  <% if @last_location %>
+    var lat = <%= @last_location.latitude %>;
+    var lng = <%= @last_location.longitude %>;
+    map.setView([lat, lng], 14);
+    L.marker([lat, lng]).addTo(map)
+      .bindPopup('<b><%= j @device.name %></b><br>Lat: ' + lat + '<br>Lng: ' + lng)
+      .openPopup();
+  <% else %>
+    map.setView([20, 0], 2);
+  <% end %>
+</script>

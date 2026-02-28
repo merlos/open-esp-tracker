@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_28_095541) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_28_130000) do
   create_table "devices", force: :cascade do |t|
     t.boolean "active", default: true
     t.string "api_token_digest"
@@ -27,6 +27,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_28_095541) do
     t.decimal "accuracy", precision: 6, scale: 2
     t.decimal "altitude", precision: 8, scale: 2
     t.integer "battery_level"
+    t.boolean "battery_low"
     t.decimal "battery_voltage", precision: 4, scale: 2
     t.datetime "created_at", null: false
     t.integer "device_id", null: false

@@ -1,0 +1,62 @@
+# Docker Compose – local development environment for Open ESP Tracker
+#
+# Services
+# ────────
+#  server     Rails development server (http://localhost:3000)
+#             Auto-prepares the database on first start.
+#
+#  esp-build  Compiles the Arduino sketch (activated with the "esp" profile).
+#             Run once to compile; does not stay running.
+#
+# Quick-start
+# ───────────
+#  Start the Rails server:
+#    docker compose up server
+#
+#  Open a Rails console:
+#    docker compose exec server bin/rails console
+#
+#  Run the Rails test suite:
+#    docker compose exec server bin/rails test
+#
+#  Compile the ESP sketch (one-shot):
+#    docker compose run --rm esp-build
+#
+#  Flash the ESP sketch over USB (Linux – adjust port as needed):
+#    docker compose run --rm --device /dev/ttyUSB0 esp-build \
+#      arduino-cli upload --fqbn esp32:esp32:esp32s3 --port /dev/ttyUSB0 .
+
+services:
+
+  # ── Rails development server ──────────────────────────────────────────────
+  server:
+    build:
+      context: server
+      dockerfile: Dockerfile.dev
+    image: open-esp-tracker-server:dev
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount source for live-reload without rebuilding the image.
+      - ./server:/rails
+      # Persist installed gems in a named volume so they survive source mounts.
+      - bundle_gems:/usr/local/bundle
+    environment:
+      RAILS_ENV: development
+      # Provide RAILS_MASTER_KEY via a .env file or shell export when needed.
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY:-}
+
+  # ── ESP32 sketch compiler ─────────────────────────────────────────────────
+  # Activated only with: docker compose --profile esp run --rm esp-build
+  esp-build:
+    build:
+      context: esp-client
+      dockerfile: Dockerfile
+    image: open-esp-tracker-esp:build
+    volumes:
+      # Mount the sketch directory into the container's working directory.
+      - ./esp-client:/sketch
+    profiles: ["esp"]
+
+volumes:
+  bundle_gems:

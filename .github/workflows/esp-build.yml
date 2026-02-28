@@ -26,6 +26,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Cache the ESP32 platform (~250 MB) and Arduino libraries between runs
+      # so CI does not re-download them on every commit.
+      - name: Cache Arduino platform and libraries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.arduino15
+            ~/Arduino/libraries
+          key: arduino-${{ runner.os }}-esp32-${{ hashFiles('esp-client/**/*.ino', 'esp-client/**/*.h') }}
+          restore-keys: |
+            arduino-${{ runner.os }}-esp32-
+
       # arduino/compile-sketches installs Arduino CLI, the requested board
       # platform, and any libraries listed below, then compiles the sketch.
       - name: Compile ESP32-S3 sketch

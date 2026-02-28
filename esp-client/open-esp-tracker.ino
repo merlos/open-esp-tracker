@@ -368,12 +368,15 @@ void isiStatus() {
 void isiSet(const String& param, const String& value) {
     if (param == "server_url") {
         strncpy(g_config.serverUrl, value.c_str(), sizeof(g_config.serverUrl) - 1);
+        g_config.serverUrl[sizeof(g_config.serverUrl) - 1] = '\0';
     } else if (param == "server_port") {
         g_config.serverPort = value.toInt();
     } else if (param == "api_token") {
         strncpy(g_config.apiToken, value.c_str(), sizeof(g_config.apiToken) - 1);
+        g_config.apiToken[sizeof(g_config.apiToken) - 1] = '\0';
     } else if (param == "apn") {
         strncpy(g_config.apn, value.c_str(), sizeof(g_config.apn) - 1);
+        g_config.apn[sizeof(g_config.apn) - 1] = '\0';
     } else if (param == "interval") {
         g_config.wakeupIntervalSec = value.toInt();
     } else if (param == "accuracy") {

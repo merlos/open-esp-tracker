@@ -31,7 +31,7 @@ module Api
       def location_params
         params.permit(:latitude, :longitude, :altitude, :speed, :accuracy,
                       :battery_level, :battery_voltage, :satellites, :hdop,
-                      :firmware_version, :recorded_at, :battery_low)
+                      :firmware_version, :recorded_at)
       end
     end
   end

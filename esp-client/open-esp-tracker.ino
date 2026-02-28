@@ -261,6 +261,8 @@ void loadConfig() {
     strncpy(g_config.serverUrl, g_prefs.getString("server_url",
             DEFAULT_SERVER_URL).c_str(), sizeof(g_config.serverUrl) - 1);
     g_config.serverUrl[sizeof(g_config.serverUrl) - 1] = '\0';
+            DEFAULT_SERVER_URL).c_str(), sizeof(g_config.serverUrl) - 1);
+    g_config.serverUrl[sizeof(g_config.serverUrl) - 1] = '\0';
 
     g_config.serverPort = g_prefs.getInt("server_port", DEFAULT_SERVER_PORT);
 
@@ -270,6 +272,7 @@ void loadConfig() {
 
     strncpy(g_config.apn, g_prefs.getString("apn",
             DEFAULT_APN).c_str(), sizeof(g_config.apn) - 1);
+    g_config.apn[sizeof(g_config.apn) - 1] = '\0';
     g_config.apn[sizeof(g_config.apn) - 1] = '\0';
 
     g_config.wakeupIntervalSec    = g_prefs.getInt  ("interval",    DEFAULT_WAKEUP_INTERVAL_SEC);

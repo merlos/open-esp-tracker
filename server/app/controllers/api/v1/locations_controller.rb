@@ -25,6 +25,7 @@ module Api
         @device = Device.find_by(api_token_prefix: prefix, active: true)
         unless @device&.verify_api_token(token)
           render json: { error: "Invalid token" }, status: :unauthorized
+          return
         end
       end
 

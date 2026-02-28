@@ -263,12 +263,12 @@ The onboard WS2812B LED (GPIO 48) indicates the current device state:
 
 ## JSON Payload Reference
 
-Each successful report POSTs the following JSON to `POST /api/location`:
+Each successful report POSTs the following JSON to `POST /api/v1/locations`:
 
 ```json
 {
   "device_id":       "AABBCCDDEEFF",
-  "timestamp":       "2024-06-01T12:34:56Z",
+  "recorded_at":     "2024-06-01T12:34:56Z",
   "latitude":        51.507351,
   "longitude":       -0.127758,
   "altitude":        42.3,
@@ -286,7 +286,7 @@ Each successful report POSTs the following JSON to `POST /api/location`:
 | Field | Type | Unit | Description |
 |-------|------|------|-------------|
 | `device_id` | string | – | Unique ID derived from ESP32 MAC address |
-| `timestamp` | string | ISO-8601 UTC | Time of GPS fix |
+| `recorded_at` | string | ISO-8601 UTC | Time of GPS fix |
 | `latitude` | float | degrees | WGS-84 latitude |
 | `longitude` | float | degrees | WGS-84 longitude |
 | `altitude` | float | metres | Altitude above sea level |

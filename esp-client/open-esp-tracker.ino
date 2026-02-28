@@ -659,17 +659,17 @@ bool sendData(const GpsData& gps, float battVoltage, uint8_t battPercent) {
              (uint8_t)(mac >> 16), (uint8_t)(mac >>  8), (uint8_t)(mac));
 
     doc["device_id"]        = deviceId;
-    doc["timestamp"]        = gps.timestamp;
-    doc["latitude"]         = serialized(String(gps.latitude,  6));
-    doc["longitude"]        = serialized(String(gps.longitude, 6));
-    doc["altitude"]         = serialized(String(gps.altitude,  1));
-    doc["speed"]            = serialized(String(gps.speed,     2));
-    doc["accuracy"]         = serialized(String(gps.accuracy,  1));
+    doc["recorded_at"]      = gps.timestamp;
+    doc["latitude"]         = gps.latitude;
+    doc["longitude"]        = gps.longitude;
+    doc["altitude"]         = gps.altitude;
+    doc["speed"]            = gps.speed;
+    doc["accuracy"]         = gps.accuracy;
     doc["battery_level"]    = battPercent;
-    doc["battery_voltage"]  = serialized(String(battVoltage,   2));
+    doc["battery_voltage"]  = battVoltage;
     doc["battery_low"]      = (battPercent <= (uint8_t)g_config.batteryLowThreshold);
     doc["satellites"]       = gps.satellites;
-    doc["hdop"]             = serialized(String(gps.hdop,      2));
+    doc["hdop"]             = gps.hdop;
     doc["firmware_version"] = FIRMWARE_VERSION;
 
     String payload;
@@ -684,8 +684,8 @@ bool sendData(const GpsData& gps, float battVoltage, uint8_t battPercent) {
         return false;
     }
 
-    // Build the endpoint path – POST to /api/location
-    String path = F("/api/location");
+    // Build the endpoint path – POST to /api/v1/locations
+    String path = F("/api/v1/locations");
 
     // ---- Send HTTP POST ----
     secureClient.printf("POST %s HTTP/1.1\r\n", path.c_str());

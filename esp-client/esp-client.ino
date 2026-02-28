@@ -45,6 +45,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <driver/rtc_io.h>
 #include <esp_sleep.h>
+#include <mbedtls/sha256.h>
 
 // --------------------------------------------------------------------------
 // Pin assignments (Waveshare ESP32-S3 + A7670E carrier board)
@@ -68,7 +69,10 @@
 // Serial port connected to the A7670E
 #define SerialAT Serial1
 
-// Convenience macro for conditional debug printing
+// Convenience macro for conditional debug printing.
+// TinyGSM also defines DBG so we undef first to avoid a redefinition warning.
+#undef DBG
+#undef DBGLN
 #if DEBUG_MESSAGES
   #define DBG(x)   Serial.print(x)
   #define DBGLN(x) Serial.println(x)
@@ -148,6 +152,10 @@ bool    getGpsFix(GpsData& data);
 // HTTP transmission
 bool    sendData(const GpsData& gps, float battVoltage, uint8_t battPercent);
 
+// Utility
+String sha256Hex(const String& input);
+String extractHost(const char* url);
+
 // ==========================================================================
 // 4. HELPER FUNCTIONS
 // ==========================================================================
@@ -205,6 +213,48 @@ uint8_t voltageToPercent(float voltage) {
 }
 
 // --------------------------------------------------------------------------
+// Utility helpers
+// --------------------------------------------------------------------------
+
+/**
+ * Compute the SHA-256 digest of `input` and return it as a 64-character
+ * lowercase hex string.  Used to hash ISI passwords before NVS storage so
+ * that plaintext credentials are never persisted to flash.
+ */
+String sha256Hex(const String& input) {
+    uint8_t hash[32];
+    mbedtls_sha256_context ctx;
+    mbedtls_sha256_init(&ctx);
+    mbedtls_sha256_starts(&ctx, 0 /* is224 = 0 → SHA-256 */);
+    mbedtls_sha256_update(&ctx,
+        reinterpret_cast<const unsigned char*>(input.c_str()),
+        input.length());
+    mbedtls_sha256_finish(&ctx, hash);
+    mbedtls_sha256_free(&ctx);
+
+    String hex;
+    hex.reserve(64);
+    char buf[3];
+    for (int byteIndex = 0; byteIndex < 32; byteIndex++) {
+        snprintf(buf, sizeof(buf), "%02x", hash[byteIndex]);
+        hex += buf;
+    }
+    return hex;
+}
+
+/**
+ * Extract the hostname from a URL that may have a scheme prefix
+ * (e.g. "https://tracker.example.com" → "tracker.example.com").
+ * If no "://" is found the input is returned as-is.
+ * Used so that TinyGsmClient::connect() receives a bare hostname
+ * rather than a full URL, which would break DNS resolution.
+ */
+String extractHost(const char* url) {
+    const char* sep = strstr(url, "://");
+    return sep ? String(sep + 3) : String(url);
+}
+
+// --------------------------------------------------------------------------
 // NVS configuration load / save
 // --------------------------------------------------------------------------
 
@@ -214,14 +264,17 @@ void loadConfig() {
 
     strncpy(g_config.serverUrl, g_prefs.getString("server_url",
             DEFAULT_SERVER_URL).c_str(), sizeof(g_config.serverUrl) - 1);
+    g_config.serverUrl[sizeof(g_config.serverUrl) - 1] = '\0';
 
     g_config.serverPort = g_prefs.getInt("server_port", DEFAULT_SERVER_PORT);
 
     strncpy(g_config.apiToken, g_prefs.getString("api_token",
             DEFAULT_API_TOKEN).c_str(), sizeof(g_config.apiToken) - 1);
+    g_config.apiToken[sizeof(g_config.apiToken) - 1] = '\0';
 
     strncpy(g_config.apn, g_prefs.getString("apn",
             DEFAULT_APN).c_str(), sizeof(g_config.apn) - 1);
+    g_config.apn[sizeof(g_config.apn) - 1] = '\0';
 
     g_config.wakeupIntervalSec    = g_prefs.getInt  ("interval",    DEFAULT_WAKEUP_INTERVAL_SEC);
     g_config.gpsAccuracyThreshold = g_prefs.getFloat("accuracy",    DEFAULT_GPS_ACCURACY_THRESHOLD);
@@ -373,12 +426,15 @@ void isiStatus() {
 void isiSet(const String& param, const String& value) {
     if (param == "server_url") {
         strncpy(g_config.serverUrl, value.c_str(), sizeof(g_config.serverUrl) - 1);
+        g_config.serverUrl[sizeof(g_config.serverUrl) - 1] = '\0';
     } else if (param == "server_port") {
         g_config.serverPort = value.toInt();
     } else if (param == "api_token") {
         strncpy(g_config.apiToken, value.c_str(), sizeof(g_config.apiToken) - 1);
+        g_config.apiToken[sizeof(g_config.apiToken) - 1] = '\0';
     } else if (param == "apn") {
         strncpy(g_config.apn, value.c_str(), sizeof(g_config.apn) - 1);
+        g_config.apn[sizeof(g_config.apn) - 1] = '\0';
     } else if (param == "interval") {
         g_config.wakeupIntervalSec = value.toInt();
     } else if (param == "accuracy") {
@@ -449,16 +505,16 @@ void runIsi() {
             return;
         }
         g_prefs.begin(NVS_NAMESPACE, false);
-        g_prefs.putString("isi_pwd", pwd1);
+        g_prefs.putString("isi_pwd", sha256Hex(pwd1));
         g_prefs.end();
         Serial.println(F("Password saved."));
     } else {
-        // Verify password (3 attempts)
+        // Verify password (3 attempts) by comparing SHA-256 hashes.
         bool authenticated = false;
         for (int attempt = 0; attempt < 3; attempt++) {
             Serial.print(F("Password: "));
             String entered = readIsiPassword();
-            if (entered == storedPwd) {
+            if (sha256Hex(entered) == storedPwd) {
                 authenticated = true;
                 break;
             }
@@ -687,8 +743,10 @@ bool sendData(const GpsData& gps, float battVoltage, uint8_t battPercent) {
     // A7670E) does not expose a separate TinyGsmClientSecure type.  The modem
     // manages TLS/SSL internally at the AT-command layer when connecting to
     // port 443, so the application-level connection is still encrypted.
+    // Strip any "https://" scheme prefix so connect() receives a bare hostname.
+    String host = extractHost(g_config.serverUrl);
     TinyGsmClient secureClient(g_modem);
-    if (!secureClient.connect(g_config.serverUrl, g_config.serverPort)) {
+    if (!secureClient.connect(host.c_str(), g_config.serverPort)) {
         DBGLN(F("[HTTP] Connection failed"));
         return false;
     }
@@ -698,7 +756,7 @@ bool sendData(const GpsData& gps, float battVoltage, uint8_t battPercent) {
 
     // ---- Send HTTP POST ----
     secureClient.printf("POST %s HTTP/1.1\r\n", path.c_str());
-    secureClient.printf("Host: %s\r\n", g_config.serverUrl);
+    secureClient.printf("Host: %s\r\n", host.c_str());
     secureClient.print (F("Content-Type: application/json\r\n"));
     if (strlen(g_config.apiToken) > 0) {
         secureClient.printf("Authorization: Bearer %s\r\n", g_config.apiToken);

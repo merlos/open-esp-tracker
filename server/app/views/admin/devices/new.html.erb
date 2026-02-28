@@ -1,0 +1,28 @@
+<div class="max-w-lg">
+  <h1 class="text-2xl font-bold mb-6">New Device</h1>
+  <%= form_with model: [:admin, @device], local: true, class: "bg-white rounded shadow p-6" do |f| %>
+    <% if @device.errors.any? %>
+      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <% @device.errors.full_messages.each do |msg| %>
+          <p><%= msg %></p>
+        <% end %>
+      </div>
+    <% end %>
+    <div class="mb-4">
+      <%= f.label :name, class: "block font-medium mb-1" %>
+      <%= f.text_field :name, class: "w-full border rounded px-3 py-2", placeholder: "ESP-Tracker-001" %>
+    </div>
+    <div class="mb-4">
+      <%= f.label :user_id, "Owner (optional)", class: "block font-medium mb-1" %>
+      <%= f.select :user_id, User.all.map { |u| [u.email, u.id] }, { include_blank: "No owner" }, class: "w-full border rounded px-3 py-2" %>
+    </div>
+    <div class="mb-6">
+      <%= f.label :active, class: "flex items-center gap-2 font-medium" do %>
+        <%= f.check_box :active, class: "rounded" %> Active
+      <% end %>
+    </div>
+    <%= f.submit "Create Device", class: "bg-blue-700 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded" %>
+  <% end %>
+  <p class="mt-4 text-sm text-gray-500">After creating, use "Generate Token" to get an API token for the device.</p>
+  <%= link_to "Cancel", admin_devices_path, class: "mt-2 inline-block text-gray-600 hover:underline" %>
+</div>

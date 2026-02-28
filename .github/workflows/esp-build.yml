@@ -1,0 +1,68 @@
+# Compile the ESP32-S3 + A7670E Arduino sketch on every push / pull request.
+#
+# Job name: "build" – add this as a required status check in the branch
+# protection settings (Settings → Branches → main → Require status checks →
+# "ESP Build / build") to block merging if the firmware does not compile.
+
+name: ESP Build
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "esp-client/**"
+      - ".github/workflows/esp-build.yml"
+  pull_request:
+    paths:
+      - "esp-client/**"
+      - ".github/workflows/esp-build.yml"
+
+jobs:
+  build:
+    name: Compile Arduino sketch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Cache the ESP32 platform (~250 MB) and Arduino libraries between runs
+      # so CI does not re-download them on every commit.
+      - name: Cache Arduino platform and libraries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.arduino15
+            ~/Arduino/libraries
+          key: arduino-${{ runner.os }}-esp32-${{ hashFiles('esp-client/**/*.ino', 'esp-client/**/*.h') }}
+          restore-keys: |
+            arduino-${{ runner.os }}-esp32-
+
+      # arduino/compile-sketches installs Arduino CLI, the requested board
+      # platform, and any libraries listed below, then compiles the sketch.
+      - name: Compile ESP32-S3 sketch
+        uses: arduino/compile-sketches@v1
+        with:
+          # Fully Qualified Board Name for the Waveshare ESP32-S3 board.
+          # esp32:esp32:esp32s3 is the generic ESP32-S3 target that covers this
+          # hardware; swap for a more specific variant (e.g. :XIAO_ESP32S3) if
+          # your board package provides one.
+          fqbn: esp32:esp32:esp32s3
+
+          # Path (relative to repo root) that contains the sketch folder.
+          sketch-paths: |
+            - esp-client
+
+          # Install the ESP32 Arduino board support package from Espressif.
+          platforms: |
+            - name: esp32:esp32
+              source-url: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+
+          # Arduino libraries required by the sketch.
+          libraries: |
+            - name: TinyGSM
+            - name: ArduinoJson
+            - name: Adafruit NeoPixel
+
+          # Emit a machine-readable JSON report of the compilation results.
+          enable-deltas-report: true

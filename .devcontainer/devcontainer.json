@@ -1,0 +1,57 @@
+// VS Code / GitHub Codespaces dev container for Open ESP Tracker.
+//
+// Opens a single environment that supports both sub-projects:
+//   • Rails server  – Ruby, bundler, gems, sqlite3 already installed.
+//   • ESP client    – arduino-cli, ESP32 platform and required libraries
+//                     already installed.
+//
+// Startup: VS Code (or Codespaces) builds .devcontainer/Dockerfile with the
+// repo root as context, mounts the repo at /workspace, then runs
+// postCreateCommand to prepare the development database.
+{
+  "name": "Open ESP Tracker",
+
+  "build": {
+    // Context is the repo root so the Dockerfile can COPY server/Gemfile…
+    "context": "..",
+    "dockerfile": "Dockerfile"
+  },
+
+  // Keep installed gems in a named Docker volume so they survive source-tree
+  // volume mounts and are shared across container rebuilds.
+  "mounts": [
+    "source=esp-tracker-bundle,target=/usr/local/bundle,type=volume"
+  ],
+
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+
+  // Prepare the Rails development database on first container start.
+  "postCreateCommand": "cd /workspace/server && bundle install && bin/rails db:prepare",
+
+  "remoteUser": "vscode",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Ruby
+        "Shopify.ruby-lsp",
+        "castwide.solargraph",
+        // Arduino / ESP32
+        "vscode-arduino.vscode-arduino-community",
+        // Docker
+        "ms-azuretools.vscode-docker",
+        // General
+        "eamodio.gitlens",
+        "EditorConfig.EditorConfig"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true,
+        "[ruby]": {
+          "editor.defaultFormatter": "Shopify.ruby-lsp"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+# Run the Rails test suite on every push / pull request.
+#
+# Job name: "test" – add this as a required status check in the branch
+# protection settings (Settings → Branches → main → Require status checks →
+# "Rails Tests / test") to block merging if any test fails.
+
+name: Rails Tests
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "server/**"
+      - ".github/workflows/rails-test.yml"
+  pull_request:
+    paths:
+      - "server/**"
+      - ".github/workflows/rails-test.yml"
+
+jobs:
+  test:
+    name: Run Minitest suite
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          # Read the version from server/.ruby-version automatically.
+          ruby-version-file: server/.ruby-version
+          # Install bundler and gems into the vendor/bundle cache.
+          bundler-cache: true
+          working-directory: server
+
+      - name: Prepare test database
+        env:
+          RAILS_ENV: test
+        run: bin/rails db:test:prepare
+
+      - name: Run tests
+        env:
+          RAILS_ENV: test
+        run: bin/rails test

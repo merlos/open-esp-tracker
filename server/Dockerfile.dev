@@ -1,0 +1,44 @@
+# Development Dockerfile for the Rails server.
+#
+# Unlike the production Dockerfile (which creates a slimmed-down image), this
+# image pre-installs all development and test gems so the container is ready
+# to use immediately without any additional setup steps.
+#
+# Usage (via docker-compose.yml at the repo root):
+#   docker compose up server
+#
+# Or build and run manually:
+#   docker build -t open-esp-tracker-server:dev -f Dockerfile.dev .
+#   docker run --rm -p 3000:3000 -v $(pwd):/rails open-esp-tracker-server:dev
+
+ARG RUBY_VERSION=3.2.3
+FROM ruby:${RUBY_VERSION}-slim
+
+# Install build tools and runtime libraries
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+      build-essential \
+      curl \
+      git \
+      libsqlite3-dev \
+      pkg-config \
+      sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Store gems outside /rails so a bind-mounted source tree does not shadow them.
+ENV BUNDLE_PATH=/usr/local/bundle \
+    RAILS_ENV=development
+
+WORKDIR /rails
+
+# Pre-install gems at build time (cached unless Gemfile/Gemfile.lock changes).
+COPY Gemfile Gemfile.lock ./
+RUN bundle install
+
+# Copy application code (overridden at runtime by the volume mount).
+COPY . .
+
+EXPOSE 3000
+
+# Prepare DB on first start, then launch the dev server.
+CMD ["sh", "-c", "bin/rails db:prepare && bin/rails server -b 0.0.0.0"]

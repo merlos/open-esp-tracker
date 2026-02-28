@@ -21,6 +21,8 @@ jobs:
   build:
     name: Compile Arduino sketch
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code

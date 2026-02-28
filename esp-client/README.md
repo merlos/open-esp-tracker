@@ -45,7 +45,7 @@ your back-end server over HTTPS.
 | USB Serial | USB-OTG (native) | ISI console |
 
 > **Note:** Pin numbers reflect the Waveshare ESP32-S3-A7670E reference design.
-> Adjust the `#define` values in `open-esp-tracker.ino` if you use a different
+> Adjust the `#define` values in `esp-client.ino` if you use a different
 > carrier board.
 
 ---
@@ -100,7 +100,7 @@ arduino-cli lib install "Adafruit NeoPixel"
    the **Espressif Systems esp32** package.
 4. Install the three libraries listed above via **Sketch → Include Library →
    Manage Libraries**.
-5. Open `open-esp-tracker.ino`.
+5. Open `esp-client.ino`.
 
 ### Option B – arduino-cli (CI / command-line)
 
@@ -330,4 +330,4 @@ Each successful report POSTs the following JSON to `POST /api/v1/locations`:
 ### Battery percentage seems wrong
 
 * Calibrate `VBAT_DIVIDER_RATIO`, `VBAT_FULL_VOLTAGE`, and
-  `VBAT_EMPTY_VOLTAGE` in `open-esp-tracker.ino` to match your hardware.
+  `VBAT_EMPTY_VOLTAGE` in `esp-client.ino` to match your hardware.

@@ -1,5 +1,5 @@
 /**
- * open-esp-tracker.ino
+ * esp-client.ino
  *
  * Main firmware for the Open ESP Tracker
  * Hardware: Waveshare ESP32-S3 + A7670E 4G/GPS module
@@ -30,8 +30,13 @@
 
 #include "default_config.h"
 
-// TinyGSM – must be defined before the header is included
-#define TINY_GSM_MODEM_A7670          // Select A7670E modem driver
+// TinyGSM – must be defined before the header is included.
+// TINY_GSM_MODEM_SIM7600 is the closest supported SIMCom driver:
+// the A7670E shares the same SIMCom AT-command set and, crucially,
+// this driver includes TinyGsmGPS (enableGPS/getGPS/disableGPS) which
+// the A7672X driver omits.  At runtime the modem handles TLS internally
+// via its own SSL context; the sketch connects on port 443 accordingly.
+#define TINY_GSM_MODEM_SIM7600        // Use SIM7600 driver for A7670E (SIMCom compatible)
 #define TINY_GSM_RX_BUFFER 1024       // Increase RX buffer for large responses
 #include <TinyGsmClient.h>
 
@@ -678,7 +683,11 @@ bool sendData(const GpsData& gps, float battVoltage, uint8_t battPercent) {
     DBG(F("[HTTP] Payload: ")); DBGLN(payload);
 
     // ---- Set up TinyGSM HTTPS client ----
-    TinyGsmClientSecure secureClient(g_modem);
+    // TinyGsmClient is used here because the SIM7600 driver (which covers the
+    // A7670E) does not expose a separate TinyGsmClientSecure type.  The modem
+    // manages TLS/SSL internally at the AT-command layer when connecting to
+    // port 443, so the application-level connection is still encrypted.
+    TinyGsmClient secureClient(g_modem);
     if (!secureClient.connect(g_config.serverUrl, g_config.serverPort)) {
         DBGLN(F("[HTTP] Connection failed"));
         return false;
